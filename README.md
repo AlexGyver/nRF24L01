@@ -14,4 +14,4 @@ Projects - папка со схемами и скетчами
  
  
 ### Схема подключения
-![подключение](https://github.com/alexesDev/nRF24L01/blob/master/connect.jpg)
+![подключение](https://github.com/AlexGyver/nRF24L01/blob/master/connect.jpg)
