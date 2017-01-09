@@ -5,9 +5,9 @@
     by AlexGyver 2016
 */
 
-#include <SPI.h>
-#include "nRF24L01.h"
-#include "RF24.h"
+#include <SPI.h>          // библиотека для работы с шиной SPI
+#include "nRF24L01.h"     // библиотека радиомодуля
+#include "RF24.h"         // ещё библиотека радиомодуля
 
 RF24 radio(9, 10); // "создать" модуль на пинах 9 и 10 Для Уно
 //RF24 radio(9,53); // для Меги
