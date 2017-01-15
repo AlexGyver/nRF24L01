@@ -20,3 +20,5 @@
  
 ## Схема подключения
 ![подключение](https://github.com/AlexGyver/nRF24L01/blob/master/connect.jpg)
+![подключение](https://github.com/AlexGyver/nRF24L01/blob/master/connect_adapter.png)
+
