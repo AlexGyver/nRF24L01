@@ -3,7 +3,7 @@
 
 ## Папки
 
-**RF24-master** - Библиотека
+**RF24-master** - библиотека для модуля связи, установить в C:\Program Files\Arduino\libraries
   
 **nRF24 tests** - тесты модулей
   
