@@ -47,5 +47,3 @@ void loop(void) {
       Serial.print("Recieved: "); Serial.println(gotByte); 
    }
 }
-
-
