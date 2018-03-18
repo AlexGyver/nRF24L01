@@ -1,5 +1,4 @@
 //--------------------- НАСТРОЙКИ ----------------------
-#define CH_AMOUNT 8   // число каналов (должно совпадать с приёмником)
 #define CH_NUM 0x60   // номер канала (должен совпадать с приёмником)
 //--------------------- НАСТРОЙКИ ----------------------
 
@@ -27,7 +26,7 @@ RF24 radio(9, 10); // "создать" модуль на пинах 9 и 10 Дл
 //--------------------- ПЕРЕМЕННЫЕ ----------------------
 byte address[][6] = {"1Node", "2Node", "3Node", "4Node", "5Node", "6Node"}; // возможные номера труб
 
-int transmit_data[CH_AMOUNT];  // массив пересылаемых данных
+int transmit_data[2];          // массив пересылаемых данных
 int telemetry[2];              // массив принятых от приёмника данных телеметрии
 byte rssi;
 int trnsmtd_pack = 1, failed_pack;
@@ -41,7 +40,11 @@ void setup() {
 }
 
 void loop() {
-  if (radio.write(&transmit_data, sizeof(transmit_data))) {    // отправка пакета
+  // забиваем transmit_data данными, для примера
+  transmit_data[0] = 10;
+  transmit_data[0] = 20;
+  
+  if (radio.write(&transmit_data, sizeof(transmit_data))) {    // отправка пакета transmit_data
     trnsmtd_pack++;
     if (!radio.available()) {                                  // если получаем пустой ответ
     } else {
@@ -54,9 +57,10 @@ void loop() {
     failed_pack++;
   }
 
-  if (millis() - RSSI_timer > 1000) {                        // таймер RSSI
+  if (millis() - RSSI_timer > 1000) {    // таймер RSSI
+    
     // расчёт качества связи (0 - 100%) на основе числа ошибок и числа успешных передач
-    rssi = (1 - ((float)failed_pack / trnsmtd_pack)) * 100;  
+    rssi = (1 - ((float)failed_pack / trnsmtd_pack)) * 100;
 
     // сбросить значения
     failed_pack = 0;
