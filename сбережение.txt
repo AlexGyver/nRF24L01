@@ -1,0 +1,23 @@
+Enter low-power mode
+To return to normal power mode, either write() some data or startListening, or powerUp().
+@note Optimization: The radio will never enter power down unless instructed by the MCU via this command.
+
+  void powerDown(void);
+
+* @note Optimization: New Command *
+* This will not block until the 3 FIFO buffers are filled with data.
+* Once the FIFOs are full, writeFast will simply wait for success or timeout, and return 1 or 0 respectively. From a user perspective, just keep trying to send the same data. The library will keep auto retrying the current payload using the built in functionality.
+* @warning It is important to never keep the nRF24L01 in TX mode for more than 4ms at a time. If the auto retransmit is enabled, the nRF24L01 is never in TX mode long enough to disobey this rule. Allow the FIFO to clear by issuing txStandBy() or ensure appropriate time between transmissions.
+* ONLY max retry interrupt flags will be cleared when writeFast is called
+
+* Example (Partial blocking):
+
+radio.writeFast(&buf,32); // Writes 1 payload to the buffers
+
+txStandBy(); 		 // Returns 0 if failed. 1 if success. Blocks only until MAX_RT timeout or success. Data flushed on fail.
+
+radio.writeFast(&buf,32); // Writes 1 payload to the buffers
+
+txStandBy(1000);		 // Using extended timeouts, returns 1 if success. Retries failed payloads for 1 seconds before returning 0
+
+
