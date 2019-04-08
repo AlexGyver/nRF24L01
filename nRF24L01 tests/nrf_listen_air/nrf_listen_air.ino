@@ -7,6 +7,17 @@ RF24 radio(9,10); // инициализировать модуль на пина
 
 const uint8_t num_channels = 128;
 uint8_t values[num_channels];
+const int num_reps = 100;
+
+int serial_putc( char c, FILE * ) {
+  Serial.write( c );
+  return c;
+}
+
+void printf_begin(void) {
+  fdevopen( &serial_putc, 0 );
+}
+
 void setup(void)
 {
   Serial.begin(9600);
@@ -32,8 +43,6 @@ void setup(void)
   }
   printf("\n\r");
 }
-const int num_reps = 100;
-
 void loop(void)
 {
   memset(values,0,sizeof(values));
@@ -56,12 +65,3 @@ void loop(void)
   }
   printf("\n\r");
 }
-int serial_putc( char c, FILE * ) {
-  Serial.write( c );
-  return c;
-}
-
-void printf_begin(void) {
-  fdevopen( &serial_putc, 0 );
-}
- 
