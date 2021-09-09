@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2011 J. Coliz <maniacbug@ymail.com>
+ Copyright (C) 2011 James Coliz, Jr. <maniacbug@ymail.com>
 
  This program is free software; you can redistribute it and/or
  modify it under the terms of the GNU General Public License
@@ -7,10 +7,10 @@
  */
 
 /**
- * Example of using interrupts
+ * Interrupt-driven test for native target
  *
- * This is an example of how to user interrupts to interact with the radio.
- * It builds on the pingpair_pl example, and uses ack payloads.
+ * This example is the friendliest for the native target because it doesn't do
+ * any polling.  Made a slight change to call done() at the end of setup.
  */
 
 #include <SPI.h>
@@ -22,7 +22,7 @@
 // Hardware configuration
 //
 
-// Set up nRF24L01 radio on SPI bus plus pins 9 & 10
+// Set up nRF24L01 radio on SPI bus plus pins 8 & 9
 
 RF24 radio(8,9);
 
@@ -129,6 +129,13 @@ void setup(void)
   //
 
   attachInterrupt(0, check_radio, FALLING);
+
+  //
+  // On the native target, this is as far as we get
+  //
+#if NATIVE
+  done();
+#endif
 }
 
 static uint32_t message_count = 0;
@@ -194,7 +201,7 @@ void check_radio(void)
     if ( role == role_sender )
     {
       radio.read(&message_count,sizeof(message_count));
-      printf("Ack:%lu\n\r",message_count);
+      printf("Ack:%lu\n\r",(unsigned long)message_count);
     }
 
     // If we're the receiver, we've received a time message

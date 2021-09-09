@@ -7,22 +7,15 @@
  */
 
 /**
- * Example RF Radio Ping Pair which Sleeps between Sends
+ * Example RF Radio Ping Pair
  *
- * This is an example of how to use the RF24 class to create a battery-
- * efficient system.  It is just like the pingpair.pde example, but the
- * ping node powers down the radio and sleeps the MCU after every
- * ping/pong cycle.
- *
- * As with the pingpair.pde example, write this sketch to two different nodes,
- * connect the role_pin to ground on one.  The ping node sends the current
- * time to the pong node, which responds by sending the value back.  The ping
- * node can then see how long the whole cycle took.
+ * This is an example of how to use the RF24 class.  Write this sketch to two different nodes,
+ * connect the role_pin to ground on one.  The ping node sends the current time to the pong node,
+ * which responds by sending the value back.  The ping node can then see how long the whole cycle
+ * took.
  */
 
 #include <SPI.h>
-#include <avr/sleep.h>
-#include <avr/power.h>
 #include "nRF24L01.h"
 #include "RF24.h"
 #include "printf.h"
@@ -65,22 +58,6 @@ const char* role_friendly_name[] = { "invalid", "Ping out", "Pong back"};
 // The role of the current running sketch
 role_e role;
 
-//
-// Sleep declarations
-//
-
-typedef enum { wdt_16ms = 0, wdt_32ms, wdt_64ms, wdt_128ms, wdt_250ms, wdt_500ms, wdt_1s, wdt_2s, wdt_4s, wdt_8s } wdt_prescalar_e;
-
-void setup_watchdog(uint8_t prescalar);
-void do_sleep(void);
-
-const short sleep_cycles_per_transmission = 4;
-volatile short sleep_cycles_remaining = sleep_cycles_per_transmission;
-
-//
-// Normal operation
-//
-
 void setup(void)
 {
   //
@@ -93,7 +70,7 @@ void setup(void)
   delay(20); // Just to get a solid reading on the role pin
 
   // read the address pin, establish our role
-  if ( digitalRead(role_pin) )
+  if ( ! digitalRead(role_pin) )
     role = role_ping_out;
   else
     role = role_pong_back;
@@ -104,22 +81,21 @@ void setup(void)
 
   Serial.begin(57600);
   printf_begin();
-  printf("\n\rRF24/examples/pingpair_sleepy/\n\r");
+  printf("\n\rRF24/examples/pingpair/\n\r");
   printf("ROLE: %s\n\r",role_friendly_name[role]);
-
-  //
-  // Prepare sleep parameters
-  //
-
-  // Only the ping out role sleeps.  Wake up every 4s to send a ping
-  if ( role == role_ping_out )
-    setup_watchdog(wdt_1s);
 
   //
   // Setup and configure rf radio
   //
 
   radio.begin();
+
+  // optionally, increase the delay between retries & # of retries
+  radio.setRetries(15,15);
+
+  // optionally, reduce the payload size.  seems to
+  // improve reliability
+  radio.setPayloadSize(8);
 
   //
   // Open pipes to other nodes for communication
@@ -168,7 +144,12 @@ void loop(void)
     // Take the time, and send it.  This will block until complete
     unsigned long time = millis();
     printf("Now sending %lu...",time);
-    radio.write( &time, sizeof(unsigned long) );
+    bool ok = radio.write( &time, sizeof(unsigned long) );
+    
+    if (ok)
+      printf("ok...");
+    else
+      printf("failed.\n\r");
 
     // Now, continue listening
     radio.startListening();
@@ -177,7 +158,7 @@ void loop(void)
     unsigned long started_waiting_at = millis();
     bool timeout = false;
     while ( ! radio.available() && ! timeout )
-      if (millis() - started_waiting_at > 250 )
+      if (millis() - started_waiting_at > 200 )
         timeout = true;
 
     // Describe the results
@@ -195,29 +176,12 @@ void loop(void)
       printf("Got response %lu, round-trip delay: %lu\n\r",got_time,millis()-got_time);
     }
 
-    //
-    // Shut down the system
-    //
-
-    // Experiment with some delay here to see if it has an effect
-    delay(500);
-
-    // Power down the radio.  Note that the radio will get powered back up
-    // on the next write() call.
-    radio.powerDown();
-
-    // Sleep the MCU.  The watchdog timer will awaken in a short while, and
-    // continue execution here.
-    while( sleep_cycles_remaining )
-      do_sleep();
-
-    sleep_cycles_remaining = sleep_cycles_per_transmission;
+    // Try again 1s later
+    delay(1000);
   }
 
   //
   // Pong back role.  Receive each packet, dump it out, and send it back
-  //
-  // This is untouched from the pingpair example.
   //
 
   if ( role == role_pong_back )
@@ -233,9 +197,12 @@ void loop(void)
         // Fetch the payload, and see if this was the last one.
         done = radio.read( &got_time, sizeof(unsigned long) );
 
-        // Spew it.  Include our time, because the ping_out millis counter is unreliable
-        // due to it sleeping
-        printf("Got payload %lu @ %lu...",got_time,millis());
+        // Spew it
+        printf("Got payload %lu...",got_time);
+
+	// Delay just a little bit to let the other unit
+	// make the transition to receiver
+	delay(20);
       }
 
       // First, stop listening so we can talk
@@ -250,39 +217,4 @@ void loop(void)
     }
   }
 }
-
-//
-// Sleep helpers
-//
-
-// 0=16ms, 1=32ms,2=64ms,3=125ms,4=250ms,5=500ms
-// 6=1 sec,7=2 sec, 8=4 sec, 9= 8sec
-
-void setup_watchdog(uint8_t prescalar)
-{
-  prescalar = min(9,prescalar);
-  uint8_t wdtcsr = prescalar & 7;
-  if ( prescalar & 8 )
-    wdtcsr |= _BV(WDP3);
-
-  MCUSR &= ~_BV(WDRF);
-  WDTCSR = _BV(WDCE) | _BV(WDE);
-  WDTCSR = _BV(WDCE) | wdtcsr | _BV(WDIE);
-}
-
-ISR(WDT_vect)
-{
-  --sleep_cycles_remaining;
-}
-
-void do_sleep(void)
-{
-  set_sleep_mode(SLEEP_MODE_PWR_DOWN); // sleep mode is set here
-  sleep_enable();
-
-  sleep_mode();                        // System sleeps here
-
-  sleep_disable();                     // System continues execution here when watchdog timed out
-}
-
-// vim:ai:cin:sts=2 sw=2 ft=cpp
+// vim:cin:ai:sts=2 sw=2 ft=cpp
